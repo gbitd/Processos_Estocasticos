@@ -1,4 +1,5 @@
 import sqlite3
+from fractions import Fraction
 
 import numpy as np
 import pandas as pd
@@ -26,10 +27,11 @@ def get_matches_of_team(team_id):
 teams = pd.read_sql_query("SELECT * FROM Team", conn)
 
 # Encontrando o team_api_id do time Juventus. Alterar para o time de interesse
-team_api_id = teams[teams["team_long_name"] == "Juventus"][
+team_long_name = "Juventus"
+team_api_id = teams[teams["team_long_name"] == team_long_name][
     "team_api_id"
 ].values[0]
-print("Time: Juventus\napi_id:" + str(team_api_id))
+print("Time: " + team_long_name + "\napi_id: " + str(team_api_id))
 
 # Obtendo as partidas em que o Juventus jogou
 matches_of_team = get_matches_of_team(team_api_id)
@@ -37,7 +39,7 @@ matches_of_team = matches_of_team.sort_values(by="date")
 
 print("Número de partidas do Juventus: " + str(len(matches_of_team)))
 
-matches_of_team["result"] = "Defeat" # Inicializa toda a coluna como derrota
+matches_of_team["result"] = "Defeat"  # Inicializa toda a coluna como derrota
 matches_of_team.loc[
     (matches_of_team["home_team_api_id"] == team_api_id)
     & (matches_of_team["home_team_goal"] > matches_of_team["away_team_goal"]),
@@ -62,7 +64,11 @@ matches_of_team.loc[
 ] = "Draw"
 
 
-print(matches_of_team[["id", "date", "home_team_goal", "away_team_goal", "result", "stage"]])
+print(
+    matches_of_team[
+        ["id", "date", "home_team_goal", "away_team_goal", "result", "stage"]
+    ]
+)
 
 
 # # Criando a matriz de transição de probabilidade
@@ -96,8 +102,8 @@ P = np.nan_to_num(P)
 print("\nMatriz de Probabilidade P:")
 print(P)
 
-# Exibindo de forma mais legível
+# Exibindo de forma mais legível (frações)
 P_df = pd.DataFrame(P, index=estados, columns=estados)
+df_frac = P_df.map(lambda x: Fraction(x).limit_denominator())
 print("\nMatriz de Probabilidade Legível:")
-print(P_df)
-
+print(df_frac)
