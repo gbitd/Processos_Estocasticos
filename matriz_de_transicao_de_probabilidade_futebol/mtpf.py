@@ -1,5 +1,6 @@
 import sqlite3
 
+import numpy as np
 import pandas as pd
 
 # Conectando ao banco de dados
@@ -24,7 +25,7 @@ def get_matches_of_team(team_id):
 
 teams = pd.read_sql_query("SELECT * FROM Team", conn)
 
-# Encontrando o team_api_id do time Juventus
+# Encontrando o team_api_id do time Juventus. Alterar para o time de interesse
 team_api_id = teams[teams["team_long_name"] == "Juventus"][
     "team_api_id"
 ].values[0]
@@ -65,17 +66,38 @@ print(matches_of_team[["id", "date", "home_team_goal", "away_team_goal", "result
 
 
 # # Criando a matriz de transição de probabilidade
-# mtp = pd.DataFrame(
-#     columns=["Win", "Draw", "Defeat"], index=["Win", "Draw", "Defeat"]
-# )
-#
-# # Contando as transições de estado
-# for i in range(len(matches_of_team) - 1):
-#     mtp.loc[
-#         matches_of_team.iloc[i]["result"], matches_of_team.iloc[i + 1]["result"]
-#     ] += 1
-#
-# # Normalizando as transições
-# mtp = mtp.div(mtp.sum(axis=1), axis=0)
-#
-# print(mtp)
+
+# Definindo os estados
+estados = ["Win", "Draw", "Defeat"]
+n = len(estados)
+
+# Criando um dicionário para mapear os estados para índices
+estado_to_idx = {estado: idx for idx, estado in enumerate(estados)}
+
+# Inicializando a matriz de contagem
+C = np.zeros((n, n))
+
+# Obter a sequência de resultados
+resultados = matches_of_team["result"].values
+
+# Contando as transições entre estados
+for i in range(len(resultados) - 1):
+    estado_atual = resultados[i]
+    estado_proximo = resultados[i + 1]
+    C[estado_to_idx[estado_atual], estado_to_idx[estado_proximo]] += 1
+
+# Normalizando para obter a matriz de probabilidades
+P = C / C.sum(axis=1, keepdims=True)
+
+# Substituindo NaNs (em caso de linhas com soma zero)
+P = np.nan_to_num(P)
+
+# Exibindo a matriz de probabilidade
+print("\nMatriz de Probabilidade P:")
+print(P)
+
+# Exibindo de forma mais legível
+P_df = pd.DataFrame(P, index=estados, columns=estados)
+print("\nMatriz de Probabilidade Legível:")
+print(P_df)
+
